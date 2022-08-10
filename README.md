@@ -1,4 +1,6 @@
 # to-do-list
-To-Do list project using vanilla javascript.
-It is based on Local Storage.
-No framework used.
+To-Do list project using vanilla javascript. <br />
+It is based on Local Storage.<br />
+No framework used.<br />
+Click here to [visit](https://chitranshk1301.github.io/to-do-list/)
+
