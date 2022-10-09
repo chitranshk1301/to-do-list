@@ -1,112 +1,106 @@
-// On app load, get all tasks from localStorage
-window.onload = loadTasks;
+//DOM Elements
+let notesData = JSON.parse(localStorage.getItem("myNotes")) || [];
+let newNotesButton = document.querySelector(".notesNew");
+let notesModal = document.querySelector(".notesModal");
+let notesForm = document.querySelector(".notesForm");
+let closeForm = document.querySelector(".closeForm");
+let notesList = document.querySelector(".notesList");
+let searchForm = document.querySelector(".searchForm");
+let searchInput = document.querySelector(".searchInput");
 
-// On form submit add task
-document.querySelector("form").addEventListener("submit", e => {
-  e.preventDefault();
-  addTask();
+
+//Open Modal
+newNotesButton.addEventListener("click", function () {
+  notesModal.classList.add("active");
 });
 
-function loadTasks() {
-  // check if localStorage has any tasks
-  // if not then return
-  if (localStorage.getItem("tasks") == null) return;
+//Hide Modal
+closeForm.addEventListener("click", function () {
+  notesModal.classList.remove("active");
+});
 
-  // Get the tasks from localStorage and convert it to an array
-  let tasks = Array.from(JSON.parse(localStorage.getItem("tasks")));
 
-  // Loop through the tasks and add them to the list
-  tasks.forEach(task => {
-    const list = document.querySelector("ul");
-    const li = document.createElement("li");
-    li.innerHTML = `<input type="checkbox" onclick="taskComplete(this)" class="check" ${task.completed ? 'checked' : ''}>
-      <input type="text" value="${task.task}" class="task ${task.completed ? 'completed' : ''}" onfocus="getCurrentTask(this)" onblur="editTask(this)">
-      <i class="fa fa-trash" onclick="removeTask(this)"></i>`;
-    list.insertBefore(li, list.children[0]);
-  });
+//Handle note form
+  notesForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  //handle notes data
+  let title = e.target.noteTitle.value;
+  let content = e.target.noteEntry.value;
+  let noteObj = createNoteObj(title, content);
+  notesData.push(noteObj);
+  localStorage.setItem("myNotes", JSON.stringify(notesData));
+
+  //handle notes ui with data created
+  populateNotes(notesData);
+  notesModal.classList.remove("active");
+  e.target.reset();
+});
+
+ 
+//UI Template Creation
+function populateNotes(notesData) {
+  let allNotes = notesData
+    .map((note) => {
+      return `
+        <div class="notesItem">
+              <h2>${note.title}</h2>
+              <p>
+               ${note.content}
+              </p>
+              <div class="notesMeta">
+                <button class="notesDelete" data-id="${note.id}"> <img src="/simpleNotes/assets/trash.svg" height="12" alt=""> Delete</button>
+              </div>
+            </div>
+        `;
+    })
+    .join(" ");
+  notesList.innerHTML = allNotes;
+}
+populateNotes(notesData);
+
+
+ 
+//Object Creation
+function createNoteObj(title, content) {
+  let newNote = {
+    title: title,
+    content: content,
+    id: crypto.randomUUID(),
+  };
+  return newNote;
 }
 
-function addTask() {
-  const task = document.querySelector("form input");
-  const list = document.querySelector("ul");
-  // return if task is empty
-  if (task.value === "") {
-    alert("Please add some task!");
-    return false;
+ 
+//Delete a list
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("notesDelete")) {
+    let id = e.target.dataset.id;
+    let shouldDelete = confirm("Are you sure to delete this note?");
+    if (shouldDelete) {
+      notesData = notesData.filter(function (note) {
+        return note.id !== id;
+      });
+      localStorage.setItem("myNotes", JSON.stringify(notesData));
+      populateNotes(notesData);
+    }
   }
-  // check is task already exist
-  if (document.querySelector(`input[value="${task.value}"]`)) {
-    alert("Task already exist!");
-    return false;
+});
+
+
+//Search a title
+searchForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  if (e.target.searchInput.value === "") {
+    localStorage.setItem("myNotes", JSON.stringify(notesData));
+      populateNotes(notesData);
+      alert("Please enter a Title");
+  } else {
+    let textSearch = e.target.searchInput.value;
+    let searchList = notesData.filter(function(el){
+      return el.title === textSearch
+    })
+    populateNotes(searchList);
   }
-
-  // add task to local storage
-  localStorage.setItem("tasks", JSON.stringify([...JSON.parse(localStorage.getItem("tasks") || "[]"), { task: task.value, completed: false }]));
-
-  // create list item, add innerHTML and append to ul
-  const li = document.createElement("li");
-  li.innerHTML = `<input type="checkbox" onclick="taskComplete(this)" class="check">
-  <input type="text" value="${task.value}" class="task" onfocus="getCurrentTask(this)" onblur="editTask(this)">
-  <i class="fa fa-trash" onclick="removeTask(this)"></i>`;
-  list.insertBefore(li, list.children[0]);
-  // clear input
-  task.value = "";
-}
-
-function taskComplete(event) {
-  let tasks = Array.from(JSON.parse(localStorage.getItem("tasks")));
-  tasks.forEach(task => {
-    if (task.task === event.nextElementSibling.value) {
-      task.completed = !task.completed;
-    }
-  });
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-  event.nextElementSibling.classList.toggle("completed");
-}
-
-function removeTask(event) {
-  let tasks = Array.from(JSON.parse(localStorage.getItem("tasks")));
-  tasks.forEach(task => {
-    if (task.task === event.parentNode.children[1].value) {
-      // delete task
-      tasks.splice(tasks.indexOf(task), 1);
-    }
-  });
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-  event.parentElement.remove();
-}
-
-// store current task to track changes
-var currentTask = null;
-
-// get current task
-function getCurrentTask(event) {
-  currentTask = event.value;
-}
-
-// edit the task and update local storage
-function editTask(event) {
-  let tasks = Array.from(JSON.parse(localStorage.getItem("tasks")));
-  // check if task is empty
-  if (event.value === "") {
-    alert("Task is empty!");
-    event.value = currentTask;
-    return;
-  }
-  // task already exist
-  tasks.forEach(task => {
-    if (task.task === event.value) {
-      alert("Task already exist!");
-      event.value = currentTask;
-      return;
-    }
-  });
-  // update task
-  tasks.forEach(task => {
-    if (task.task === currentTask) {
-      task.task = event.value;
-    }
-  });
-  // update local storage
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
+  e.target.reset();
+});
+ 
